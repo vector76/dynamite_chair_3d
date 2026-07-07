@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dynamite Chair 3D</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #05060a;
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    color: #e8e8f0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  canvas { display: block; }
+  #hud {
+    position: fixed; bottom: 14px; left: 14px; pointer-events: none;
+    font-size: 14px; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
+  #hud .k { color: #8a8aa8; }
+  #hud .v { color: #e8e8f0; font-weight: 600; }
+  #hud .warn { color: #ff6b5e; font-weight: 600; }
+  #hud .ok { color: #6bff9e; font-weight: 600; }
+  #banner {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+    background: rgba(5,6,10,0.65); cursor: pointer;
+  }
+  #banner.hidden { display: none; }
+  #banner h1 { font-size: 38px; margin: 0 0 10px; letter-spacing: 2px; }
+  #banner h2 { font-size: 26px; margin: 0 0 12px; }
+  #banner h2.lose { color: #ff6b5e; }
+  #banner p { margin: 4px 0; font-size: 15px; color: #b8b8cc; max-width: 560px; }
+  #banner .key { color: #ffd479; }
+  #pause {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+    background: #05060a; cursor: pointer;   /* fully opaque: no strategizing on a frozen frame */
+  }
+  #pause.hidden { display: none; }
+  #pause h2 { font-size: 28px; letter-spacing: 3px; margin: 0 0 10px; }
+  #pause p { color: #8a8aa8; font-size: 15px; }
+  .hint { position: fixed; bottom: 14px; right: 14px; text-align: right; pointer-events: none;
+          font-size: 13px; color: #55556a; line-height: 1.5;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+</style>
+</head>
+<body>
+<div id="hud"></div>
+<div class="hint">click = blast &middot; mouse = aim &middot; R = restart &middot; Esc = pause</div>
+<div id="banner">
+  <h1>💥 DYNAMITE CHAIR 3D 💥</h1>
+  <p>Gravity is pulling you down. You have no throttle — only <b>fixed impulse charges</b>.</p>
+  <p>Each blast is one identical kick in the direction the craft is pointing.</p>
+  <p style="margin-top:10px;"><span class="key">Mouse</span> aims &middot; <span class="key">click / SPACE</span> fires a charge</p>
+  <p style="margin-top:14px;"><span class="key">Click to launch</span></p>
+</div>
+<div id="pause" class="hidden">
+  <h2>PAUSED</h2>
+  <p>Simulation frozen &middot; clock stopped</p>
+  <p><span style="color:#ffd479;">Click to resume</span></p>
+</div>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
