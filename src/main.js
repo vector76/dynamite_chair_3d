@@ -111,6 +111,10 @@ const input = createInput(renderer.domElement, {
   onHidden() {
     if (state.mode === 'playing') { state.mode = 'paused'; showPause(); }
   },
+  onInvertChange(inverted) {
+    document.getElementById('invhint').textContent =
+      'I = invert mouse' + (inverted ? ' (ON)' : ' (OFF)');
+  },
 });
 
 document.getElementById('banner').addEventListener('pointerdown', () => {
