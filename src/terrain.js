@@ -2,7 +2,30 @@
 // heightAt(x, z) is an analytic function (noise + carve blend), so collision
 // queries and the mesh sample the exact same surface at any position.
 import * as THREE from 'three';
-import { fbm, vnoise } from './rng.js';
+import { fbm, vnoise, mulberry32 } from './rng.js';
+
+// Fine-grained regolith noise, multiplied over the vertex colors. Pure
+// visual texture — gives the smooth Lambert surface the optical grain the
+// eye needs to judge distance and closing speed. Seeded: deterministic.
+function makeGrainTexture() {
+  const S = 256;
+  const rnd = mulberry32(0xD1CE);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = S;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(S, S);
+  for (let i = 0; i < S * S; i++) {
+    const v = 235 - rnd() * 50;          // mid-gray grain, ~±10% brightness
+    img.data[i * 4] = v;
+    img.data[i * 4 + 1] = v;
+    img.data[i * 4 + 2] = v;
+    img.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
 
 export function buildTerrain(params, path) {
   const seed = params.seed;
@@ -67,7 +90,17 @@ export function buildTerrain(params, path) {
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geo.computeVertexNormals();
 
-  const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }));
+  const grain = makeGrainTexture();
+  // one texture tile per ~24 m; 256 texels/tile ≈ 9 cm grain up close,
+  // mipmaps + anisotropy keep it calm at distance
+  grain.repeat.set((maxX - minX) / 24, (maxZ - minZ) / 24);
+  grain.anisotropy = 4;
+
+  const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({
+    vertexColors: true,
+    map: grain,
+  }));
+  mesh.receiveShadow = true;
 
   return { mesh, heightAt, floorYAt };
 }

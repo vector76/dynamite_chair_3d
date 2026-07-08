@@ -10,6 +10,7 @@ export function createCraft() {
     new THREE.BoxGeometry(1.4, 0.7, 1.4),
     new THREE.MeshLambertMaterial({ color: 0xcaa84a }),
   );
+  body.castShadow = true;
   group.add(body);
 
   // gray cabin
@@ -18,6 +19,7 @@ export function createCraft() {
     new THREE.MeshLambertMaterial({ color: 0xaeb6c2 }),
   );
   cabin.position.y = 0.62;
+  cabin.castShadow = true;
   group.add(cabin);
 
   // engine bell under the body
@@ -26,12 +28,14 @@ export function createCraft() {
     new THREE.MeshLambertMaterial({ color: 0x3a3f4a, side: THREE.DoubleSide }),
   );
   bell.position.y = -0.55;
+  bell.castShadow = true;
   group.add(bell);
 
   // four legs
   const legMat = new THREE.MeshLambertMaterial({ color: 0x8b93a0 });
   for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
     const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.0, 6), legMat);
+    leg.castShadow = true;
     leg.position.set(sx * 0.75, -0.35, sz * 0.75);
     leg.rotation.z = -sx * 0.5;
     leg.rotation.x = sz * 0.5;

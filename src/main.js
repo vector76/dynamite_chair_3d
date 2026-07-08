@@ -13,6 +13,8 @@ import { buildTerrain } from './terrain.js';
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -31,7 +33,18 @@ window.addEventListener('resize', () => {
 scene.add(new THREE.HemisphereLight(0xb0b6ff, 0x444450, 0.9));
 const sun = new THREE.DirectionalLight(0xffffff, 1.2);
 sun.position.set(50, 80, 20);
+// craft shadow: the strongest altitude cue there is. The shadow camera is a
+// small box that follows the craft (see the frame loop), so one 1024 map
+// stays sharp wherever you fly.
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -45; sun.shadow.camera.right = 45;
+sun.shadow.camera.top = 45; sun.shadow.camera.bottom = -45;
+sun.shadow.camera.near = 1; sun.shadow.camera.far = 400;
+sun.shadow.bias = -0.0002;
+sun.shadow.normalBias = 1.0;   // prevents striping (acne) on sloped terrain
 scene.add(sun);
+scene.add(sun.target);
 
 // ---- Stars ----
 // The dome is re-centered on the camera every frame so the stars show zero
@@ -209,6 +222,9 @@ function frame(now) {
   updateAimLine();
   chase.update(state.pos, state.heading, dt);
   stars.position.copy(camera.position);   // zero parallax: stars at infinity
+  // keep the sun's shadow box centered on the craft (fixed light direction)
+  sun.position.set(state.pos.x + 50, state.pos.y + 80, state.pos.z + 20);
+  sun.target.position.copy(state.pos);
 
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
