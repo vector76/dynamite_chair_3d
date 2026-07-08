@@ -60,21 +60,25 @@ craft along its nose vector — exactly like 2D, generalized to 3D.
 - **Between blasts**: gravity only. No lift, no drag (pure ballistic; drag is
   a possible future variant).
 - **Blast**: instantaneous `velocity += impulse * noseDirection`, fixed
-  magnitude, **unlimited count**, **no gameplay cooldown**.
+  magnitude, **unlimited count**, subject to a **cooldown** (~3 s, tunable).
 
-### Impulse vs. gravity is the balance lever
+### The cooldown keeps gravity in charge
 
-There is no meaningful blast cooldown. What keeps the mechanic from
-degenerating into a continuous throttle is the **ratio of impulse to
-gravity**: with low gravity and a large impulse, each blast commits you to a
-meaningfully different ballistic arc — rapid firing doesn't approximate
-hover, it just chains large committed kicks. (High gravity + rapid small
-kicks *would* feel like a throttle; that combination is simply avoided in
-tuning.) The M1 prototype's central job is finding this ratio.
+We first designed this without a cooldown, betting that a large
+impulse-to-gravity ratio alone would keep blasting from degenerating into a
+throttle. Playtesting disproved that: with unlimited un-throttled kicks the
+player can simply blast around as if in near-zero-g — gravity stops being
+the adversary, and the 2D game's core tension (gravity is *always* winning
+between kicks) evaporates.
 
-Only a minimal technical debounce is needed (ignore key auto-repeat; one
-blast per press/click). A real cooldown may return later as a property of the
-half-kick power-up charges, where finer control could justify a constraint.
+The cooldown (starting at 3 s) restores that tension: after each kick you are
+committed to the ballistic arc it bought you, and gravity gets its seconds of
+uninterrupted pull before you may answer again. The cooldown ticks on the
+simulation clock and is displayed as a **large full-width bar** at the top of
+the screen — fully red at blast, shrinking toward the center, gone when the
+next charge is ready — big enough to track in peripheral vision while flying.
+
+A shorter (or zero) cooldown may still suit future half-kick power-up charges.
 
 ## Controls
 
@@ -167,6 +171,7 @@ Per-level knobs, in rough order of application:
 
 - Speed, descent rate, **elapsed time**, coin count (`7 / 23` style, since
   the level total is knowable), level number.
+- **Cooldown bar**: full-width strip at the top of the screen (see above).
 - End-of-level banner: run stats + the coins-vs-time frontier plot.
 
 ## Audio
@@ -196,8 +201,8 @@ flat-shaded is both stylistically consistent and cheap to render.
 
 ## Remaining open questions (to settle during early milestones)
 
-1. **Impulse-to-gravity ratio** — the central tuning question; must be large
-   enough that rapid blasts stay committed kicks, not throttle. Settle in M1.
+1. **Cooldown length** — 3 s to start; tune against impulse (28 m/s) and
+   gravity (4 m/s²) so gravity stays threatening but recovery stays possible.
 2. **Timer semantics** — clock starts at spawn (proposed) vs. at first input.
 3. **Aim slew** — nose snaps to the pointer instantly (2D mouse-steer feel)
    vs. slews at a capped rate. Prototype both in M1.

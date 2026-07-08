@@ -5,6 +5,7 @@ export const CFG = {
   // arc, so rapid firing chains committed kicks instead of approximating a throttle.
   gravity: 4.0,        // m/s^2 downward
   impulse: 28.0,       // m/s velocity kick per blast
+  blastCooldown: 3.0,  // s between blasts; keeps gravity the ever-present adversary
   safeSpeed: 5.0,      // max ground-contact speed to survive, m/s
   groundFriction: 4.0, // exponential decay rate of horizontal speed while resting
   wallThreshold: 2.5,  // ground overlap beyond this = hit a wall, not a landing

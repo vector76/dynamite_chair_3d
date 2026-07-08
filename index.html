@@ -15,6 +15,19 @@
     -webkit-user-select: none;
   }
   canvas { display: block; }
+  /* blast cooldown: big full-width bar, readable in peripheral vision;
+     fully red right after a blast, shrinks toward the center, gone = ready */
+  #cooldown {
+    position: fixed; top: 0; left: 0; right: 0; height: 14px;
+    pointer-events: none;
+  }
+  #cooldown .fill {
+    width: 100%; height: 100%;
+    background: #e5382a;
+    box-shadow: 0 0 14px rgba(229,56,42,0.7);
+    transform-origin: center;
+    transform: scaleX(0);
+  }
   #hud {
     position: fixed; bottom: 14px; left: 14px; pointer-events: none;
     font-size: 14px; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
@@ -48,6 +61,7 @@
 </style>
 </head>
 <body>
+<div id="cooldown"><div class="fill"></div></div>
 <div id="hud"></div>
 <div class="hint">click = blast &middot; mouse = aim &middot; <span id="invhint">I = invert mouse</span> &middot; R = restart &middot; Esc = pause</div>
 <div id="banner">

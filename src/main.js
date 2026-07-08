@@ -5,7 +5,7 @@ import { step, blast, resolveGround } from './physics.js';
 import { createInput } from './input.js';
 import { createCraft } from './craft.js';
 import { createChaseCamera } from './camera.js';
-import { updateHud, showBanner, showPause, hideOverlays } from './hud.js';
+import { updateHud, updateCooldown, showBanner, showPause, hideOverlays } from './hud.js';
 import { levelParams, makePath } from './level.js';
 import { buildTerrain } from './terrain.js';
 
@@ -101,6 +101,7 @@ const state = {
   vel: new THREE.Vector3(),
   time: 0,      // simulation clock (accumulates clamped dt, not wall clock)
   heading: 0,   // frame for aim + camera; follows horizontal travel direction
+  cooldown: 0,  // s until the next blast is available (ticks on the sim clock)
 };
 
 // world nose direction = aim.localDir rotated about Y by heading
@@ -129,6 +130,7 @@ function resetRun() {
   state.pos.set(p.x, terrain.heightAt(p.x, p.z) + CFG.spawnAltitude, p.z);
   state.vel.set(d.x * CFG.startSpeed, 0, d.z * CFG.startSpeed);
   state.time = 0;
+  state.cooldown = 0;
   state.heading = Math.atan2(d.x, -d.z);
   input.resetAim();
   chase.snap();
@@ -137,9 +139,10 @@ function resetRun() {
 // ---- Input & mode transitions ----
 const input = createInput(renderer.domElement, {
   onFire() {
-    if (state.mode !== 'playing') return;
+    if (state.mode !== 'playing' || state.cooldown > 0) return;
     updateNoseDir();
     blast(state, noseDir);
+    state.cooldown = CFG.blastCooldown;
     craft.setFlash();
   },
   onRestart() {
@@ -186,6 +189,7 @@ function frame(now) {
 
   if (state.mode === 'playing') {
     state.time += dt;
+    state.cooldown = Math.max(0, state.cooldown - dt);
     const prevX = state.pos.x, prevZ = state.pos.z;
     step(state, dt);
     updateHeading(dt);
@@ -196,6 +200,7 @@ function frame(now) {
     }
     updateHud(state, terrain.heightAt);
   }
+  updateCooldown(state.cooldown / CFG.blastCooldown);
 
   updateNoseDir();
   craft.object.position.copy(state.pos);

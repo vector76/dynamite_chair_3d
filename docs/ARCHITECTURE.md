@@ -68,7 +68,7 @@ Identical model to 2D, in 3D vectors:
 
 ```
 each frame:  v += g * dt;  p += v * dt        (semi-implicit Euler, dt clamped)
-on blast:    v += IMPULSE * noseDir     (unlimited; debounced per press, no cooldown)
+on blast:    v += IMPULSE * noseDir;  cooldown = C    (unlimited charges, ~3 s cooldown)
 ```
 
 - One dynamic body (the craft). Coins/goal are trigger spheres.
