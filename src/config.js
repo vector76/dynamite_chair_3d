@@ -3,8 +3,8 @@ export const CFG = {
   // Physics — the impulse-to-gravity ratio is THE balance lever (see docs/GAME_DESIGN.md):
   // gravity low + impulse large means each blast commits you to a meaningfully different
   // arc, so rapid firing chains committed kicks instead of approximating a throttle.
-  gravity: 3.0,        // m/s^2 downward
-  impulse: 12.0,       // m/s velocity kick per blast
+  gravity: 4.0,        // m/s^2 downward
+  impulse: 20.0,       // m/s velocity kick per blast
   safeSpeed: 5.0,      // max ground-contact speed to survive, m/s
   groundFriction: 4.0, // exponential decay rate of horizontal speed while resting
   wallThreshold: 2.5,  // ground overlap beyond this = hit a wall, not a landing
@@ -32,12 +32,17 @@ export const CFG = {
   headingMinSpeed: 1.0,  // m/s horizontal speed below which heading holds
   headingDamping: 2.0,   // higher = camera aligns to travel direction faster
 
-  // Chase camera
-  camDist: 12,
-  camHeight: 5,
+  // Chase camera: raised and pulled back so you can see ahead over canyon
+  // bends; looks at a point ahead of the craft down the heading.
+  camDist: 16,
+  camHeight: 11,
+  camLookAhead: 14,    // how far ahead of the craft the camera looks, m
   camDamping: 4.0,     // higher = snappier follow
   camMinY: 1.2,        // floor for the camera before terrain exists
   camClearance: 2.0,   // min camera height above the terrain surface
+
+  // Aim line: long pointing-direction indicator (readable from the far camera)
+  aimLineLength: 9,
 
   // Loop
   dtMax: 0.05,

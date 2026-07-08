@@ -31,7 +31,12 @@ export function createChaseCamera(camera) {
         camera.position.lerp(target, k);
       }
 
-      lookAt.set(craftPos.x, craftPos.y + 1, craftPos.z);
+      // look past the craft, down the canyon — shows what's coming at a bend
+      lookAt.set(
+        craftPos.x + Math.sin(heading) * CFG.camLookAhead,
+        craftPos.y + 1,
+        craftPos.z - Math.cos(heading) * CFG.camLookAhead,
+      );
       camera.lookAt(lookAt);
     },
     snap() { initialized = false; },

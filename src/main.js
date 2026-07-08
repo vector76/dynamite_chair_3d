@@ -34,6 +34,9 @@ sun.position.set(50, 80, 20);
 scene.add(sun);
 
 // ---- Stars ----
+// The dome is re-centered on the camera every frame so the stars show zero
+// parallax — infinitely far away, as stars should be.
+let stars;
 {
   const N = 800, pos = new Float32Array(N * 3);
   for (let i = 0; i < N; i++) {
@@ -47,7 +50,7 @@ scene.add(sun);
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const stars = new THREE.Points(geo, new THREE.PointsMaterial({
+  stars = new THREE.Points(geo, new THREE.PointsMaterial({
     color: 0xcfd3ff, size: 1.6, sizeAttenuation: false, fog: false,
   }));
   scene.add(stars);
@@ -68,6 +71,28 @@ const craft = createCraft();
 scene.add(craft.object);
 const chase = createChaseCamera(camera);
 chase.setGround(terrain.heightAt);
+
+// long aim line: kick direction stays readable from the raised, distant camera
+const aimLine = (() => {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+    color: 0x6bff9e, transparent: true, opacity: 0.75,
+  }));
+  line.frustumCulled = false;
+  scene.add(line);
+  return line;
+})();
+function updateAimLine() {
+  const a = aimLine.geometry.attributes.position.array;
+  a[0] = state.pos.x + noseDir.x * 1.6;
+  a[1] = state.pos.y + noseDir.y * 1.6;
+  a[2] = state.pos.z + noseDir.z * 1.6;
+  a[3] = state.pos.x + noseDir.x * (1.6 + CFG.aimLineLength);
+  a[4] = state.pos.y + noseDir.y * (1.6 + CFG.aimLineLength);
+  a[5] = state.pos.z + noseDir.z * (1.6 + CFG.aimLineLength);
+  aimLine.geometry.attributes.position.needsUpdate = true;
+}
 
 // ---- Game state ----
 const state = {
@@ -176,7 +201,9 @@ function frame(now) {
   craft.object.position.copy(state.pos);
   craft.setAim(noseDir);
   craft.update(dt);
+  updateAimLine();
   chase.update(state.pos, state.heading, dt);
+  stars.position.copy(camera.position);   // zero parallax: stars at infinity
 
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
