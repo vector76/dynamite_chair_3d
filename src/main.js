@@ -6,6 +6,8 @@ import { createInput } from './input.js';
 import { createCraft } from './craft.js';
 import { createChaseCamera } from './camera.js';
 import { updateHud, showBanner, showPause, hideOverlays } from './hud.js';
+import { levelParams, makePath } from './level.js';
+import { buildTerrain } from './terrain.js';
 
 // ---- Renderer & scene ----
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -51,23 +53,21 @@ scene.add(sun);
   scene.add(stars);
 }
 
-// ---- Ground (flat plane for M1; heightfield terrain arrives in M2) ----
-{
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(2000, 2000),
-    new THREE.MeshLambertMaterial({ color: 0xcbcbd4 }),
-  );
-  ground.rotation.x = -Math.PI / 2;
-  scene.add(ground);
-  const grid = new THREE.GridHelper(2000, 200, 0x8d8d9c, 0xb2b2bf); // parallax cue on flat ground
-  grid.position.y = 0.02;
-  scene.add(grid);
-}
+// ---- Level & terrain ----
+// Debug URL params: ?level=N picks the level, ?seed=S overrides its seed.
+const query = new URLSearchParams(location.search);
+const levelNum = Math.max(1, parseInt(query.get('level') || '1', 10) || 1);
+const seedOverride = query.has('seed') ? (parseInt(query.get('seed'), 10) >>> 0) : null;
+const params = levelParams(levelNum, seedOverride);
+const path = makePath(params);
+const terrain = buildTerrain(params, path);
+scene.add(terrain.mesh);
 
 // ---- Craft & camera ----
 const craft = createCraft();
 scene.add(craft.object);
 const chase = createChaseCamera(camera);
+chase.setGround(terrain.heightAt);
 
 // ---- Game state ----
 const state = {
@@ -98,10 +98,13 @@ function updateHeading(dt) {
 }
 
 function resetRun() {
-  state.pos.set(CFG.startPos.x, CFG.startPos.y, CFG.startPos.z);
-  state.vel.set(0, 0, 0);
+  const spawnT = 15;   // a little way in from the canyon mouth
+  const p = path.pointAt(spawnT);
+  const d = path.dirAt(spawnT);
+  state.pos.set(p.x, terrain.heightAt(p.x, p.z) + CFG.spawnAltitude, p.z);
+  state.vel.set(d.x * CFG.startSpeed, 0, d.z * CFG.startSpeed);
   state.time = 0;
-  state.heading = 0;
+  state.heading = Math.atan2(d.x, -d.z);
   input.resetAim();
   chase.snap();
 }
@@ -158,14 +161,15 @@ function frame(now) {
 
   if (state.mode === 'playing') {
     state.time += dt;
+    const prevX = state.pos.x, prevZ = state.pos.z;
     step(state, dt);
     updateHeading(dt);
-    const contact = resolveGround(state, dt);
+    const contact = resolveGround(state, dt, terrain.heightAt, prevX, prevZ);
     if (contact === 'crash') {
       state.mode = 'crashed';
       showBanner('crashed');
     }
-    updateHud(state);
+    updateHud(state, terrain.heightAt);
   }
 
   updateNoseDir();

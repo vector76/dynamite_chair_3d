@@ -8,13 +8,14 @@ const pause = document.getElementById('pause');
 
 const fmt = (v) => (Math.round(v * 10) / 10).toFixed(1);
 
-export function updateHud(s) {
+export function updateHud(s, heightAt) {
   const spd = speed(s);
   const spdCls = spd <= CFG.safeSpeed ? 'ok' : 'warn';
+  const alt = s.pos.y - CFG.feetOffset - heightAt(s.pos.x, s.pos.z);
   hud.innerHTML =
     '<div><span class="k">TIME</span> <span class="v">' + fmt(s.time) + '</span> <span class="k">s</span></div>' +
     '<div><span class="k">SPEED</span> <span class="' + spdCls + '">' + fmt(spd) + '</span> <span class="k">m/s (safe contact &le; ' + fmt(CFG.safeSpeed) + ')</span></div>' +
-    '<div><span class="k">DESCENT</span> <span class="v">' + fmt(-s.vel.y) + '</span> <span class="k">ALT</span> <span class="v">' + fmt(s.pos.y - CFG.feetOffset) + '</span> <span class="k">m</span></div>';
+    '<div><span class="k">DESCENT</span> <span class="v">' + fmt(-s.vel.y) + '</span> <span class="k">ALT</span> <span class="v">' + fmt(alt) + '</span> <span class="k">m</span></div>';
 }
 
 export function showBanner(mode) {

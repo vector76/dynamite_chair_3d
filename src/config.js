@@ -7,10 +7,12 @@ export const CFG = {
   impulse: 12.0,       // m/s velocity kick per blast
   safeSpeed: 5.0,      // max ground-contact speed to survive, m/s
   groundFriction: 4.0, // exponential decay rate of horizontal speed while resting
+  wallThreshold: 2.5,  // ground overlap beyond this = hit a wall, not a landing
 
-  // Craft
+  // Craft & spawn (position comes from the level's canyon start)
   feetOffset: 0.8,     // distance from craft center to its feet
-  startPos: { x: 0, y: 30, z: 0 },
+  spawnAltitude: 20,   // height above the canyon floor at spawn
+  startSpeed: 8,       // initial velocity along the canyon, m/s
 
   // Aim: the nose is a point on a sphere around the craft, relative to the
   // heading frame. foreAft is the arc in the vertical fore-aft plane
@@ -34,7 +36,8 @@ export const CFG = {
   camDist: 12,
   camHeight: 5,
   camDamping: 4.0,     // higher = snappier follow
-  camMinY: 1.2,        // never sink below the ground
+  camMinY: 1.2,        // floor for the camera before terrain exists
+  camClearance: 2.0,   // min camera height above the terrain surface
 
   // Loop
   dtMax: 0.05,

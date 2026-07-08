@@ -7,15 +7,20 @@ export function createChaseCamera(camera) {
   const target = new THREE.Vector3();
   const lookAt = new THREE.Vector3();
   let initialized = false;
+  let groundFn = null;   // heightAt(x, z); set once the terrain exists
 
   return {
+    setGround(fn) { groundFn = fn; },
     update(craftPos, heading, dt) {
       target.set(
         craftPos.x - Math.sin(heading) * CFG.camDist,
         craftPos.y + CFG.camHeight,
         craftPos.z + Math.cos(heading) * CFG.camDist,
       );
-      if (target.y < CFG.camMinY) target.y = CFG.camMinY;
+      const minY = groundFn
+        ? groundFn(target.x, target.z) + CFG.camClearance
+        : CFG.camMinY;
+      if (target.y < minY) target.y = minY;
 
       if (!initialized) {
         camera.position.copy(target);
