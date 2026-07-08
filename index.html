@@ -36,6 +36,37 @@
   #hud .v { color: #e8e8f0; font-weight: 600; }
   #hud .warn { color: #ff6b5e; font-weight: 600; }
   #hud .ok { color: #6bff9e; font-weight: 600; }
+  /* always-on level readout, top-left under the cooldown bar */
+  #levelbadge {
+    position: fixed; top: 24px; left: 14px; pointer-events: none;
+    font-size: 15px; letter-spacing: 1px; font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
+  #levelbadge .k { color: #8a8aa8; font-weight: 400; }
+  #hardmode {
+    position: fixed; top: 47px; left: 14px; pointer-events: none;
+    font-size: 12px; letter-spacing: 1px; font-weight: 600; color: #ffb14a;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
+  #hardmode.hidden { display: none; }
+  /* level browser, shown over the overlays; sits above #banner so its buttons
+     take the click instead of the banner's "continue" handler */
+  #levelnav {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    z-index: 10; display: flex; align-items: center; gap: 12px;
+  }
+  #levelnav.hidden { display: none; }
+  #levelnav button {
+    font: inherit; cursor: pointer; width: 34px; height: 32px; line-height: 1;
+    color: #e8e8f0; background: rgba(20,22,34,0.85);
+    border: 1px solid #3a3a4a; border-radius: 6px;
+  }
+  #levelnav button:hover:not(:disabled) { border-color: #6bff9e; }
+  #levelnav button:disabled { opacity: 0.3; cursor: default; }
+  #levelnav .cur {
+    min-width: 96px; text-align: center; font-size: 15px; letter-spacing: 1px;
+    font-weight: 600; color: #ffd479; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
   #banner {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
     flex-direction: column; text-align: center;
@@ -49,6 +80,19 @@
   #banner .stats b { color: #ffd24a; }
   #banner p { margin: 4px 0; font-size: 15px; color: #b8b8cc; max-width: 560px; }
   #banner .key { color: #ffd479; }
+  #banner .rec { color: #ffd24a; font-weight: 700; letter-spacing: 2px; margin-top: 10px; }
+  #banner .norec { color: #8a8aa8; font-size: 12px; letter-spacing: 1px; margin-top: 10px; }
+  /* end-of-level personal-best frontier plot */
+  #banner .fplot { width: 300px; height: 168px; margin: 6px 0 2px; overflow: visible; }
+  #banner .fplot .axis { stroke: #3a3a4a; stroke-width: 1; }
+  #banner .fplot .lbl { fill: #8a8aa8; font-size: 9px;
+                        font-family: ui-monospace, Consolas, monospace; }
+  #banner .fplot .prevline { fill: none; stroke: #55556a; stroke-width: 1.2; stroke-dasharray: 3 3; }
+  #banner .fplot .prevdot { fill: #55556a; }
+  #banner .fplot .frontline { fill: none; stroke: #6bd0ff; stroke-width: 1.6; }
+  #banner .fplot .frontdot { fill: #6bd0ff; }
+  #banner .fplot .runring { fill: none; stroke: #ffd24a; stroke-width: 1.5; }
+  #banner .fplot .run { fill: #ffd24a; }
   #pause {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
     flex-direction: column; text-align: center;
@@ -74,6 +118,13 @@
 <body>
 <div id="cooldown"><div class="fill"></div></div>
 <div id="hud"></div>
+<div id="levelbadge"></div>
+<div id="hardmode" class="hidden">⚑ HARD MODE &middot; no trajectory</div>
+<div id="levelnav" class="hidden">
+  <button id="levelprev" aria-label="previous level">◀</button>
+  <span class="cur"></span>
+  <button id="levelnext" aria-label="next level">▶</button>
+</div>
 <svg id="attitude" viewBox="-52 -52 104 104" aria-hidden="true">
   <circle class="att-ring" r="46"></circle>
   <circle class="att-ring" r="23"></circle>

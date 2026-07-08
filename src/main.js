@@ -6,7 +6,9 @@ import { step, blast, resolveGround } from './physics.js';
 import { createInput } from './input.js';
 import { createCraft } from './craft.js';
 import { createChaseCamera } from './camera.js';
-import { updateHud, updateCooldown, showBanner, showPause, hideOverlays } from './hud.js';
+import { updateHud, updateCooldown, showBanner, showPause, hideOverlays,
+         setLevelBadge, setHardMode, initLevelNav, showLevelNav } from './hud.js';
+import { maxLevel, unlock, record as recordScore } from './scores.js';
 import { levelParams, makePath } from './level.js';
 import { buildTerrain } from './terrain.js';
 import { createTrajectoryViz } from './viz.js';
@@ -99,6 +101,7 @@ let levelNum, params, path, terrain, coins, gate;
 // level's GPU resources — advancing levels needs no page reload.
 function loadLevel(n) {
   levelNum = n;
+  setLevelBadge(n);
   // the ?seed= override pins the URL-requested level only; levels reached by
   // progression use their own fixed seed
   params = levelParams(n, n === startLevel ? seedOverride : null);
@@ -213,6 +216,17 @@ function nextLevel() {
   startRun();
 }
 
+// Browse to a level from an overlay (level nav arrows). Bounded to unlocked
+// levels; drops you at that level's ready banner to launch when you're set.
+function goToLevel(n) {
+  n = Math.max(1, Math.min(maxLevel(), n));
+  loadLevel(n);
+  resetRun();
+  state.mode = 'ready';
+  showBanner('ready', { level: n });
+  showLevelNav(n, maxLevel());
+}
+
 // short grace after a banner appears, so a blast-click queued at the moment
 // the run ended doesn't instantly dismiss it
 let bannerAt = 0;
@@ -221,9 +235,18 @@ const bannerReady = () => performance.now() - bannerAt > 600;
 function endRun(result) {   // 'finished' | 'crashed'
   state.mode = result;
   bannerAt = performance.now();
-  if (result === 'crashed') { effects.spawnCrash(state.pos); sfxCrash(); }
-  else sfxWin();
-  showBanner(result, { level: levelNum, coins: coins.collected, total: coins.total, time: state.time });
+  if (result === 'crashed') {
+    effects.spawnCrash(state.pos); sfxCrash();
+    showBanner('crashed', { level: levelNum });
+  } else {
+    sfxWin();
+    unlock(levelNum + 1);   // clearing a level opens the next for browsing
+    const score = recordScore(levelNum, { coins: coins.collected, time: state.time });
+    showBanner('finished', {
+      level: levelNum, coins: coins.collected, total: coins.total, time: state.time, score,
+    });
+  }
+  showLevelNav(levelNum, maxLevel());
 }
 
 // ---- Input & mode transitions ----
@@ -247,11 +270,11 @@ const input = createInput(renderer.domElement, {
       else if (state.mode === 'crashed') startRun();
       else if (state.mode === 'finished') nextLevel();
     } else {
-      if (state.mode === 'playing') { state.mode = 'paused'; showPause(); }
+      if (state.mode === 'playing') { state.mode = 'paused'; showPause(); showLevelNav(levelNum, maxLevel()); }
     }
   },
   onHidden() {
-    if (state.mode === 'playing') { state.mode = 'paused'; showPause(); }
+    if (state.mode === 'playing') { state.mode = 'paused'; showPause(); showLevelNav(levelNum, maxLevel()); }
   },
   onInvertChange(inverted) {
     document.getElementById('invhint').textContent =
@@ -264,6 +287,7 @@ const input = createInput(renderer.domElement, {
 
 function updateVizHint(on) {
   document.getElementById('vizhint').textContent = 'V = trajectory' + (on ? ' (ON)' : ' (OFF)');
+  setHardMode(!on);   // trajectory off = hard mode, flagged on the HUD
 }
 function updateMuteHint(muted) {
   document.getElementById('mutehint').textContent = 'M = mute' + (muted ? ' (MUTED)' : '');
@@ -271,6 +295,13 @@ function updateMuteHint(muted) {
 // reflect persisted toggles in the UI, like input.js does for invert
 if (!viz.isOn()) updateVizHint(false);
 if (isMuted()) updateMuteHint(true);
+
+// level browser (prev / next) on the overlays — lets you drop back to any
+// level you've reached and replay it
+initLevelNav({
+  onPrev: () => goToLevel(levelNum - 1),
+  onNext: () => goToLevel(levelNum + 1),
+});
 
 document.getElementById('banner').addEventListener('pointerdown', () => {
   if (document.pointerLockElement) {
@@ -287,7 +318,7 @@ document.getElementById('pause').addEventListener('pointerdown', () => input.req
 // tick() lets a script drive frames even where requestAnimationFrame is
 // throttled, e.g. a hidden tab).
 window.dc3d = {
-  state, input, loadLevel,
+  state, input, loadLevel, goToLevel, scene,
   start: startRun,
   fire: () => { if (state.mode === 'playing') fireBlast(); },
   tick: (dt) => tick(Math.min(dt, CFG.dtMax)),
@@ -296,7 +327,9 @@ window.dc3d = {
 
 // ---- Main loop ----
 loadLevel(startLevel);
+unlock(startLevel);   // a ?level= deep link is reachable from the browser
 resetRun();
+showLevelNav(startLevel, maxLevel());   // the intro banner is up at boot
 let last = performance.now();
 function frame(now) {
   let dt = (now - last) / 1000;
@@ -330,7 +363,7 @@ function tick(dt) {
   craft.update(dt);
   coins.update(dt);
   updateAimLine();
-  viz.update(state, terrain.heightAt);
+  viz.update(state, noseDir, terrain.heightAt);
   effects.update(dt);
   chase.update(state.pos, state.heading, dt);
   stars.position.copy(camera.position);   // zero parallax: stars at infinity

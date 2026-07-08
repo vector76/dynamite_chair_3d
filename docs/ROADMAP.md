@@ -41,12 +41,16 @@ answered first.
 - Full state machine: ready → playing → finished/crashed → next/retry.
 - Sanity-check that crash-ends-run feels fair on longer canyons.
 
-## M4 — Scoring frontier, assists & polish
+## M4 — Scoring frontier, assists & polish *(done)*
 - Personal-best (coins, time) frontier: dominance logic, localStorage
-  persistence, end-of-level frontier plot with this run highlighted.
+  persistence, end-of-level frontier plot with this run highlighted. *(src/scores.js;
+  plot in hud.js)*
 - 3D trajectory prediction line with impact marker (toggleable; hard-mode
-  flag when off).
+  flag when off). *(HUD hard-mode badge tracks the V toggle)*
 - HUD: speed, descent rate, elapsed time, coins (n / total), level.
+  *(level shown as an always-on badge)*
+- Level browser: an always-visible LEVEL badge plus prev/next arrows on the
+  overlays to replay any level reached (unlocked levels tracked in scores.js).
 - Crash effects, win fanfare, mute toggle, restart.
 - Proper craft model from primitives (port the 2D lander look to 3D).
 
