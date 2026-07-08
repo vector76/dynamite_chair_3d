@@ -6,26 +6,19 @@ export const CFG = {
   gravity: 4.0,        // m/s^2 downward
   impulse: 28.0,       // m/s velocity kick per blast
   blastCooldown: 3.0,  // s between blasts; keeps gravity the ever-present adversary
-  safeSpeed: 5.0,      // max ground-contact speed to survive, m/s
-  groundFriction: 4.0, // exponential decay rate of horizontal speed while resting
-  wallThreshold: 2.5,  // ground overlap beyond this = hit a wall, not a landing
+  // Timed race, no landing: any ground contact ends the run (see physics.js).
 
   // Craft & spawn (position comes from the level's canyon start)
   feetOffset: 0.8,     // distance from craft center to its feet
   spawnAltitude: 20,   // height above the canyon floor at spawn
   startSpeed: 8,       // initial velocity along the canyon, m/s
 
-  // Aim: the nose is a point on a sphere around the craft, relative to the
-  // heading frame. foreAft is the arc in the vertical fore-aft plane
-  // (0 = forward horizontal, 90° = straight up, 180° = backward horizontal);
-  // lateral tilts the whole thing left/right, and always moves the nose tip
-  // screen-left/right regardless of foreAft — no inversion when aiming
-  // backward past vertical.
+  // Aim: the nose direction (a unit vector in the heading frame) is rotated
+  // directly by mouse deltas — yaw about vertical, pitch about the horizontal
+  // axis across the current heading — so it turns freely with no gimbal lock in
+  // any direction (see input.js). startForeAft only sets the initial pitch.
   mouseSens: 0.0025,   // rad per pixel of mouse movement
-  startForeAft: 60 * Math.PI / 180,   // initial aim: forward-up
-  foreAftMin: -80 * Math.PI / 180,
-  foreAftMax: 180 * Math.PI / 180,    // full backward horizontal
-  lateralMax:  85 * Math.PI / 180,    // just short of pure sideways (pole)
+  startForeAft: 60 * Math.PI / 180,   // initial aim: this far up from forward
 
   // Heading: the frame the aim sphere and chase camera live in. It follows
   // the horizontal direction of travel (smoothed), not the mouse — you steer
@@ -57,7 +50,7 @@ export const CFG = {
   vizDt: 0.05,         // prediction timestep, s
 
   // Coins & finish gate
-  coinRadius: 3.2,     // pickup distance — forgiving, ~2× the craft's size
+  coinRadius: 5.0,     // pickup distance — generous, easy to sweep up on the line
   coinSpacing: 38,     // mean spacing along the canyon path, m
   coinSpin: 2.4,       // spin rate, rad/s
   gateHeight: 30,      // finish gate opening height above the floor, m

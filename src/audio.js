@@ -17,6 +17,10 @@ export function initAudio() {
     audio.master = audio.ctx.createGain();
     audio.master.gain.value = 0.35;
     audio.master.connect(audio.ctx.destination);
+    // Created inside the unlock gesture — resume immediately so the context is
+    // already running (and warmed) well before the first real sound, and warm
+    // up again once resume settles.
+    audio.ctx.resume().then(warmUpAudio).catch(() => {});
     warmUpAudio();
   } catch (e) { /* no audio available */ }
 }
@@ -27,17 +31,19 @@ export function resumeAudio() {
   }
 }
 
-// Play a 1-sample silent buffer at unlock time. Browsers commonly swallow the
-// FIRST audible sound on a freshly-resumed AudioContext, so we let this
-// silent tick be the one that's eaten.
+// Prime the output. Browsers commonly swallow the FIRST audible sound on a
+// freshly-resumed AudioContext, so run a real (but inaudible) oscillator through
+// the master bus: it forces the graph to render, so that dropped first quantum
+// is spent here instead of on the first blast.
 function warmUpAudio() {
-  if (!audio.ctx) return;
+  if (!audio.ctx || !audio.master) return;
   try {
-    const ac = audio.ctx;
-    const s = ac.createBufferSource();
-    s.buffer = ac.createBuffer(1, 1, ac.sampleRate);
-    s.connect(ac.destination);
-    s.start(0);
+    const ac = audio.ctx, t = ac.currentTime;
+    const osc = ac.createOscillator();
+    const g = ac.createGain();
+    g.gain.value = 0.0001;              // effectively silent
+    osc.connect(g); g.connect(audio.master);
+    osc.start(t); osc.stop(t + 0.05);
   } catch (e) { /* ignore */ }
 }
 

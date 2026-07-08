@@ -8,36 +8,42 @@ import { CFG } from './config.js';
 const INVERT_KEY = 'dc3d.invertY';
 
 export function createInput(dom, handlers) {
+  // The aim is controlled as a 2D point on the orientation gauge: `right` and
+  // `fwd` are the screen-plane offsets (radians) of the nose away from straight
+  // up. The mouse moves that point directly, so the gauge dot tracks the mouse.
+  // Mapping the plane onto the sphere (azimuthal-equidistant: distance from
+  // centre = angle from vertical, direction = bearing) keeps every direction
+  // live except the rim, straight down — so there is no gimbal at vertical, and
+  // pointing sideways, forward/back still swings the nose.
   const aim = {
-    foreAft: CFG.startForeAft,   // 0 fwd horizontal, 90° up, 180° back horizontal
-    lateral: 0,                  // + tilts right, - tilts left
-    localDir: new THREE.Vector3(),  // unit nose direction in the heading frame
+    right: 0,   // + leans the nose screen-right   (radians of tilt from up)
+    fwd: 0,     // + leans the nose forward / up-screen
+    localDir: new THREE.Vector3(),   // derived unit nose dir in the heading frame
   };
   // invert mouse: mouse back = pitch up, like pulling back on a stick
   let invertY = localStorage.getItem(INVERT_KEY) === '1';
 
   function updateDir() {
-    const cb = Math.cos(aim.lateral);
-    aim.localDir.set(
-      Math.sin(aim.lateral),
-      cb * Math.sin(aim.foreAft),
-      -cb * Math.cos(aim.foreAft),
-    );
+    const th = Math.hypot(aim.right, aim.fwd);   // angle from straight up
+    if (th < 1e-6) { aim.localDir.set(0, 1, 0); return; }
+    const s = Math.sin(th) / th;                 // spread the tilt onto the sphere
+    aim.localDir.set(aim.right * s, Math.cos(th), -aim.fwd * s);
   }
-  updateDir();
 
   function resetAim() {
-    aim.foreAft = CFG.startForeAft;
-    aim.lateral = 0;
+    aim.right = 0;
+    aim.fwd = Math.PI / 2 - CFG.startForeAft;    // startForeAft = angle up from forward
     updateDir();
   }
+  resetAim();
 
   document.addEventListener('mousemove', (e) => {
     if (document.pointerLockElement !== dom) return;
-    aim.lateral += e.movementX * CFG.mouseSens;
-    aim.lateral = Math.min(CFG.lateralMax, Math.max(-CFG.lateralMax, aim.lateral));
-    aim.foreAft += (invertY ? 1 : -1) * e.movementY * CFG.mouseSens;
-    aim.foreAft = Math.min(CFG.foreAftMax, Math.max(CFG.foreAftMin, aim.foreAft));
+    aim.right += e.movementX * CFG.mouseSens;
+    aim.fwd += (invertY ? 1 : -1) * e.movementY * CFG.mouseSens;
+    // clamp the tilt to at most straight down (the plane's rim = the antipode)
+    const th = Math.hypot(aim.right, aim.fwd);
+    if (th > Math.PI) { const k = Math.PI / th; aim.right *= k; aim.fwd *= k; }
     updateDir();
   });
 

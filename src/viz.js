@@ -1,7 +1,7 @@
 // Trajectory-prediction assist: forward-integrate the same physics with no
 // further blasts and draw the committed arc as a dashed line, with a marker
 // where it meets the terrain. The cooldown makes every kick a commitment —
-// this shows what you're committed to. Toggleable (V), on by default.
+// this shows what you're committed to. Toggleable (V), off by default.
 import * as THREE from 'three';
 import { CFG } from './config.js';
 import { step } from './physics.js';
@@ -35,7 +35,7 @@ export function createTrajectoryViz(scene) {
   );
   scene.add(marker);
 
-  let visible = localStorage.getItem(VIZ_KEY) !== '0';   // on by default
+  let visible = localStorage.getItem(VIZ_KEY) === '1';   // off by default
 
   // scratch state for the forward simulation (same integrator, no blasts)
   const sim = { pos: new THREE.Vector3(), vel: new THREE.Vector3() };

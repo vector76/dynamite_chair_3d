@@ -23,32 +23,9 @@ export function speed(s) {
   return Math.hypot(s.vel.x, s.vel.y, s.vel.z);
 }
 
-// Terrain contact. heightAt(x, z) gives the ground height; (prevX, prevZ) is
-// the position before this frame's move, for backing out of walls.
-// Returns 'none' | 'rest' | 'crash'. Slow contact is survivable: the craft
-// scrapes the floor and can blast back up — a legitimate recovery.
-export function resolveGround(s, dt, heightAt, prevX, prevZ) {
+// Terrain contact for the timed race: there's no landing, so any contact with
+// the ground (or a canyon wall) ends the run. Returns 'none' | 'crash'.
+export function resolveGround(s, heightAt) {
   const groundY = heightAt(s.pos.x, s.pos.z);
-  const feetY = s.pos.y - CFG.feetOffset;
-  if (feetY > groundY) return 'none';
-  const contactSpeed = speed(s);
-  if (contactSpeed > CFG.safeSpeed) return 'crash';
-
-  const penetration = groundY - feetY;
-  if (penetration > CFG.wallThreshold) {
-    // deep overlap = flew sideways into a wall, not settled onto ground:
-    // back out horizontally and stop the horizontal motion (a slow thud)
-    s.pos.x = prevX;
-    s.pos.z = prevZ;
-    s.vel.x = 0;
-    s.vel.z = 0;
-    return 'rest';
-  }
-
-  s.pos.y = groundY + CFG.feetOffset;
-  if (s.vel.y < 0) s.vel.y = 0;
-  const f = Math.exp(-CFG.groundFriction * dt);
-  s.vel.x *= f;
-  s.vel.z *= f;
-  return 'rest';
+  return s.pos.y - CFG.feetOffset > groundY ? 'none' : 'crash';
 }

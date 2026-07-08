@@ -11,6 +11,7 @@ import { levelParams, makePath } from './level.js';
 import { buildTerrain } from './terrain.js';
 import { createTrajectoryViz } from './viz.js';
 import { createEffects } from './effects.js';
+import { createAttitude } from './attitude.js';
 import { initAudio, resumeAudio, sfxBoom, sfxCrash, sfxWin, sfxChime, toggleMute, isMuted } from './audio.js';
 import { createCoins } from './coins.js';
 import { createGate } from './gate.js';
@@ -81,6 +82,7 @@ scene.add(craft.object);
 const chase = createChaseCamera(camera);
 const viz = createTrajectoryViz(scene);
 const effects = createEffects(scene);
+const attitude = createAttitude();
 
 // any click may be the gesture that unlocks audio (browser autoplay policy)
 document.addEventListener('pointerdown', () => { initAudio(); resumeAudio(); });
@@ -314,7 +316,7 @@ function tick(dt) {
     if (coins.collect(state.pos)) sfxChime();
     if (gate.crossed(prevX, prevZ, state.pos)) {
       endRun('finished');
-    } else if (resolveGround(state, dt, terrain.heightAt, prevX, prevZ) === 'crash') {
+    } else if (resolveGround(state, terrain.heightAt) === 'crash') {
       endRun('crashed');
     }
     updateHud(state, terrain.heightAt, coins);
@@ -322,6 +324,7 @@ function tick(dt) {
   updateCooldown(state.cooldown / CFG.blastCooldown);
 
   updateNoseDir();
+  attitude.update(input.aim.localDir);
   craft.object.position.copy(state.pos);
   craft.setAim(noseDir);
   craft.update(dt);

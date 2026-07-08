@@ -60,12 +60,30 @@
   .hint { position: fixed; bottom: 14px; right: 14px; text-align: right; pointer-events: none;
           font-size: 13px; color: #55556a; line-height: 1.5;
           text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+  /* orientation gauge: attitude disc for the aim, center = straight up */
+  #attitude { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+              width: 116px; height: 116px; pointer-events: none; overflow: visible; }
+  #attitude .att-ring { fill: none; stroke: #55556a; stroke-width: 1; opacity: 0.6; }
+  #attitude .att-cross { stroke: #3a3a4a; stroke-width: 1; }
+  #attitude .att-center { fill: #8a8aa8; }
+  #attitude .att-fwd { fill: #8a8aa8; font-size: 9px; text-anchor: middle;
+                       font-family: ui-monospace, Consolas, monospace; }
+  #att-dot { fill: #6bff9e; stroke: #05060a; stroke-width: 1; }
 </style>
 </head>
 <body>
 <div id="cooldown"><div class="fill"></div></div>
 <div id="hud"></div>
-<div class="hint">click = blast &middot; mouse = aim &middot; <span id="invhint">I = invert mouse</span> &middot; <span id="vizhint">V = trajectory</span> &middot; <span id="mutehint">M = mute</span> &middot; R = restart &middot; Esc = pause</div>
+<svg id="attitude" viewBox="-52 -52 104 104" aria-hidden="true">
+  <circle class="att-ring" r="46"></circle>
+  <circle class="att-ring" r="23"></circle>
+  <line class="att-cross" x1="-46" y1="0" x2="46" y2="0"></line>
+  <line class="att-cross" x1="0" y1="-46" x2="0" y2="46"></line>
+  <text class="att-fwd" x="0" y="-49">FWD</text>
+  <circle class="att-center" r="2"></circle>
+  <circle id="att-dot" r="4.5" cx="0" cy="0"></circle>
+</svg>
+<div class="hint">click = blast &middot; mouse = aim &middot; wheel = zoom &middot; <span id="invhint">I = invert mouse</span> &middot; <span id="vizhint">V = trajectory</span> &middot; <span id="mutehint">M = mute</span> &middot; R = restart &middot; Esc = pause</div>
 <div id="banner">
   <h1>💥 DYNAMITE CHAIR 3D 💥</h1>
   <p>Gravity is pulling you down. You have no throttle — only <b>fixed impulse charges</b>.</p>
