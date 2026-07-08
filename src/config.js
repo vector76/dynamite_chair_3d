@@ -45,6 +45,11 @@ export const CFG = {
   // Aim line: long pointing-direction indicator (readable from the far camera)
   aimLineLength: 9,
 
+  // Trajectory assist: how far the committed (no-further-blasts) arc is
+  // forward-integrated, and at what step (same integrator as the live sim)
+  vizHorizon: 9,       // s of lookahead
+  vizDt: 0.05,         // prediction timestep, s
+
   // Loop
   dtMax: 0.05,
 };

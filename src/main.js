@@ -8,6 +8,9 @@ import { createChaseCamera } from './camera.js';
 import { updateHud, updateCooldown, showBanner, showPause, hideOverlays } from './hud.js';
 import { levelParams, makePath } from './level.js';
 import { buildTerrain } from './terrain.js';
+import { createTrajectoryViz } from './viz.js';
+import { createEffects } from './effects.js';
+import { initAudio, resumeAudio, sfxBoom, sfxCrash, toggleMute, isMuted } from './audio.js';
 
 // ---- Renderer & scene ----
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -84,6 +87,11 @@ const craft = createCraft();
 scene.add(craft.object);
 const chase = createChaseCamera(camera);
 chase.setGround(terrain.heightAt);
+const viz = createTrajectoryViz(scene);
+const effects = createEffects(scene);
+
+// any click may be the gesture that unlocks audio (browser autoplay policy)
+document.addEventListener('pointerdown', () => { initAudio(); resumeAudio(); });
 
 // long aim line: kick direction stays readable from the raised, distant camera
 const aimLine = (() => {
@@ -157,6 +165,9 @@ const input = createInput(renderer.domElement, {
     blast(state, noseDir);
     state.cooldown = CFG.blastCooldown;
     craft.setFlash();
+    effects.spawnBlast(state.pos, noseDir, state.vel);
+    resumeAudio();   // keyboard fire / tab refocus may find the context suspended
+    sfxBoom(0.8);
   },
   onRestart() {
     if (state.mode === 'playing' || state.mode === 'crashed') {
@@ -181,7 +192,19 @@ const input = createInput(renderer.domElement, {
     document.getElementById('invhint').textContent =
       'I = invert mouse' + (inverted ? ' (ON)' : ' (OFF)');
   },
+  onToggleViz() { updateVizHint(viz.toggle()); },
+  onToggleMute() { updateMuteHint(toggleMute()); },
 });
+
+function updateVizHint(on) {
+  document.getElementById('vizhint').textContent = 'V = trajectory' + (on ? ' (ON)' : ' (OFF)');
+}
+function updateMuteHint(muted) {
+  document.getElementById('mutehint').textContent = 'M = mute' + (muted ? ' (MUTED)' : '');
+}
+// reflect persisted toggles in the UI, like input.js does for invert
+if (!viz.isOn()) updateVizHint(false);
+if (isMuted()) updateMuteHint(true);
 
 document.getElementById('banner').addEventListener('pointerdown', () => {
   if (state.mode === 'crashed' && document.pointerLockElement) {
@@ -209,6 +232,8 @@ function frame(now) {
     const contact = resolveGround(state, dt, terrain.heightAt, prevX, prevZ);
     if (contact === 'crash') {
       state.mode = 'crashed';
+      effects.spawnCrash(state.pos);
+      sfxCrash();
       showBanner('crashed');
     }
     updateHud(state, terrain.heightAt);
@@ -220,6 +245,8 @@ function frame(now) {
   craft.setAim(noseDir);
   craft.update(dt);
   updateAimLine();
+  viz.update(state, terrain.heightAt);
+  effects.update(dt);
   chase.update(state.pos, state.heading, dt);
   stars.position.copy(camera.position);   // zero parallax: stars at infinity
   // keep the sun's shadow box centered on the craft (fixed light direction)

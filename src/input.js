@@ -67,6 +67,12 @@ export function createInput(dom, handlers) {
         localStorage.setItem(INVERT_KEY, invertY ? '1' : '0');
         handlers.onInvertChange(invertY);
         break;
+      case 'KeyV':
+        handlers.onToggleViz();
+        break;
+      case 'KeyM':
+        handlers.onToggleMute();
+        break;
     }
   });
 
