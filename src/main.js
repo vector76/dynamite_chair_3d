@@ -1,4 +1,5 @@
-// Bootstrap + game loop + mode state machine: ready | playing | paused | crashed.
+// Bootstrap + game loop + mode state machine:
+// ready | playing | paused | finished | crashed.
 import * as THREE from 'three';
 import { CFG } from './config.js';
 import { step, blast, resolveGround } from './physics.js';
@@ -10,7 +11,9 @@ import { levelParams, makePath } from './level.js';
 import { buildTerrain } from './terrain.js';
 import { createTrajectoryViz } from './viz.js';
 import { createEffects } from './effects.js';
-import { initAudio, resumeAudio, sfxBoom, sfxCrash, toggleMute, isMuted } from './audio.js';
+import { initAudio, resumeAudio, sfxBoom, sfxCrash, sfxWin, sfxChime, toggleMute, isMuted } from './audio.js';
+import { createCoins } from './coins.js';
+import { createGate } from './gate.js';
 
 // ---- Renderer & scene ----
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -72,26 +75,53 @@ let stars;
   scene.add(stars);
 }
 
-// ---- Level & terrain ----
-// Debug URL params: ?level=N picks the level, ?seed=S overrides its seed.
-const query = new URLSearchParams(location.search);
-const levelNum = Math.max(1, parseInt(query.get('level') || '1', 10) || 1);
-const seedOverride = query.has('seed') ? (parseInt(query.get('seed'), 10) >>> 0) : null;
-const params = levelParams(levelNum, seedOverride);
-const path = makePath(params);
-const terrain = buildTerrain(params, path);
-scene.add(terrain.mesh);
-
 // ---- Craft & camera ----
 const craft = createCraft();
 scene.add(craft.object);
 const chase = createChaseCamera(camera);
-chase.setGround(terrain.heightAt);
 const viz = createTrajectoryViz(scene);
 const effects = createEffects(scene);
 
 // any click may be the gesture that unlocks audio (browser autoplay policy)
 document.addEventListener('pointerdown', () => { initAudio(); resumeAudio(); });
+
+// ---- Level, terrain, coins, gate ----
+// Debug URL params: ?level=N picks the level, ?seed=S overrides its seed.
+const query = new URLSearchParams(location.search);
+const startLevel = Math.max(1, parseInt(query.get('level') || '1', 10) || 1);
+const seedOverride = query.has('seed') ? (parseInt(query.get('seed'), 10) >>> 0) : null;
+
+let levelNum, params, path, terrain, coins, gate;
+
+// (Re)build everything derived from the level number, disposing the previous
+// level's GPU resources — advancing levels needs no page reload.
+function loadLevel(n) {
+  levelNum = n;
+  // the ?seed= override pins the URL-requested level only; levels reached by
+  // progression use their own fixed seed
+  params = levelParams(n, n === startLevel ? seedOverride : null);
+  path = makePath(params);
+  if (terrain) {
+    scene.remove(terrain.mesh);
+    terrain.mesh.geometry.dispose();
+    terrain.mesh.material.map.dispose();
+    terrain.mesh.material.dispose();
+  }
+  terrain = buildTerrain(params, path);
+  scene.add(terrain.mesh);
+  chase.setGround(terrain.heightAt);
+  if (coins) { scene.remove(coins.group); coins.dispose(); }
+  coins = createCoins(params, path, terrain.heightAt);
+  scene.add(coins.group);
+  if (gate) { scene.remove(gate.group); gate.dispose(); }
+  gate = createGate(params, path, terrain.heightAt);
+  scene.add(gate.group);
+  // keep ?level= current so a reload or shared link lands on this level
+  const url = new URL(location);
+  url.searchParams.set('level', n);
+  if (n !== startLevel) url.searchParams.delete('seed');
+  history.replaceState(null, '', url);
+}
 
 // long aim line: kick direction stays readable from the raised, distant camera
 const aimLine = (() => {
@@ -153,34 +183,67 @@ function resetRun() {
   state.time = 0;
   state.cooldown = 0;
   state.heading = Math.atan2(d.x, -d.z);
+  coins.reset();
   input.resetAim();
   chase.snap();
+}
+
+// ---- Run & banner transitions ----
+function fireBlast() {
+  if (state.cooldown > 0) return;
+  updateNoseDir();
+  blast(state, noseDir);
+  state.cooldown = CFG.blastCooldown;
+  craft.setFlash();
+  effects.spawnBlast(state.pos, noseDir, state.vel);
+  resumeAudio();   // keyboard fire / tab refocus may find the context suspended
+  sfxBoom(0.8);
+}
+
+function startRun() {
+  resetRun();
+  state.mode = 'playing';
+  hideOverlays();
+}
+
+function nextLevel() {
+  loadLevel(levelNum + 1);
+  startRun();
+}
+
+// short grace after a banner appears, so a blast-click queued at the moment
+// the run ended doesn't instantly dismiss it
+let bannerAt = 0;
+const bannerReady = () => performance.now() - bannerAt > 600;
+
+function endRun(result) {   // 'finished' | 'crashed'
+  state.mode = result;
+  bannerAt = performance.now();
+  if (result === 'crashed') { effects.spawnCrash(state.pos); sfxCrash(); }
+  else sfxWin();
+  showBanner(result, { level: levelNum, coins: coins.collected, total: coins.total, time: state.time });
 }
 
 // ---- Input & mode transitions ----
 const input = createInput(renderer.domElement, {
   onFire() {
-    if (state.mode !== 'playing' || state.cooldown > 0) return;
-    updateNoseDir();
-    blast(state, noseDir);
-    state.cooldown = CFG.blastCooldown;
-    craft.setFlash();
-    effects.spawnBlast(state.pos, noseDir, state.vel);
-    resumeAudio();   // keyboard fire / tab refocus may find the context suspended
-    sfxBoom(0.8);
+    // After a crash/finish the pointer is still locked, so the "click to
+    // continue" click lands here (on the canvas), not on the banner overlay.
+    if (state.mode === 'playing') fireBlast();
+    else if (state.mode === 'crashed' && bannerReady()) startRun();
+    else if (state.mode === 'finished' && bannerReady()) nextLevel();
   },
   onRestart() {
-    if (state.mode === 'playing' || state.mode === 'crashed') {
-      resetRun();
-      state.mode = 'playing';
-      hideOverlays();
+    if (state.mode === 'playing' || state.mode === 'crashed' || state.mode === 'finished') {
+      startRun();
     }
   },
   onLockChange(locked) {
     if (locked) {
-      if (state.mode === 'ready') { resetRun(); state.mode = 'playing'; hideOverlays(); }
+      if (state.mode === 'ready') startRun();
       else if (state.mode === 'paused') { state.mode = 'playing'; hideOverlays(); }
-      else if (state.mode === 'crashed') { resetRun(); state.mode = 'playing'; hideOverlays(); }
+      else if (state.mode === 'crashed') startRun();
+      else if (state.mode === 'finished') nextLevel();
     } else {
       if (state.mode === 'playing') { state.mode = 'paused'; showPause(); }
     }
@@ -207,36 +270,53 @@ if (!viz.isOn()) updateVizHint(false);
 if (isMuted()) updateMuteHint(true);
 
 document.getElementById('banner').addEventListener('pointerdown', () => {
-  if (state.mode === 'crashed' && document.pointerLockElement) {
-    resetRun(); state.mode = 'playing'; hideOverlays();
+  if (document.pointerLockElement) {
+    if (state.mode === 'crashed' && bannerReady()) startRun();
+    else if (state.mode === 'finished' && bannerReady()) nextLevel();
   } else {
     input.requestLock();
   }
 });
 document.getElementById('pause').addEventListener('pointerdown', () => input.requestLock());
 
+// Console handle for debugging/verification (ARCHITECTURE.md: keep the game
+// exercisable from the console — pointer lock isn't grantable to scripts, and
+// tick() lets a script drive frames even where requestAnimationFrame is
+// throttled, e.g. a hidden tab).
+window.dc3d = {
+  state, input, loadLevel,
+  start: startRun,
+  fire: () => { if (state.mode === 'playing') fireBlast(); },
+  tick: (dt) => tick(Math.min(dt, CFG.dtMax)),
+  get level() { return { params, path, terrain, coins, gate }; },
+};
+
 // ---- Main loop ----
+loadLevel(startLevel);
 resetRun();
 let last = performance.now();
 function frame(now) {
   let dt = (now - last) / 1000;
   last = now;
   if (dt > CFG.dtMax) dt = CFG.dtMax;
+  tick(dt);
+  requestAnimationFrame(frame);
+}
 
+function tick(dt) {
   if (state.mode === 'playing') {
     state.time += dt;
     state.cooldown = Math.max(0, state.cooldown - dt);
     const prevX = state.pos.x, prevZ = state.pos.z;
     step(state, dt);
     updateHeading(dt);
-    const contact = resolveGround(state, dt, terrain.heightAt, prevX, prevZ);
-    if (contact === 'crash') {
-      state.mode = 'crashed';
-      effects.spawnCrash(state.pos);
-      sfxCrash();
-      showBanner('crashed');
+    if (coins.collect(state.pos)) sfxChime();
+    if (gate.crossed(prevX, prevZ, state.pos)) {
+      endRun('finished');
+    } else if (resolveGround(state, dt, terrain.heightAt, prevX, prevZ) === 'crash') {
+      endRun('crashed');
     }
-    updateHud(state, terrain.heightAt);
+    updateHud(state, terrain.heightAt, coins);
   }
   updateCooldown(state.cooldown / CFG.blastCooldown);
 
@@ -244,6 +324,7 @@ function frame(now) {
   craft.object.position.copy(state.pos);
   craft.setAim(noseDir);
   craft.update(dt);
+  coins.update(dt);
   updateAimLine();
   viz.update(state, terrain.heightAt);
   effects.update(dt);
@@ -254,6 +335,5 @@ function frame(now) {
   sun.target.position.copy(state.pos);
 
   renderer.render(scene, camera);
-  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

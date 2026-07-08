@@ -50,6 +50,12 @@ export const CFG = {
   vizHorizon: 9,       // s of lookahead
   vizDt: 0.05,         // prediction timestep, s
 
+  // Coins & finish gate
+  coinRadius: 3.2,     // pickup distance — forgiving, ~2× the craft's size
+  coinSpacing: 38,     // mean spacing along the canyon path, m
+  coinSpin: 2.4,       // spin rate, rad/s
+  gateHeight: 30,      // finish gate opening height above the floor, m
+
   // Loop
   dtMax: 0.05,
 };

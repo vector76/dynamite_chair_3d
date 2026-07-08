@@ -48,6 +48,7 @@ recorded in a comment and in this doc.
 │   ├── camera.js         # chase camera controller
 │   ├── input.js          # pointer lock, mouse aim, keys, touch (later)
 │   ├── coins.js          # coin meshes, spin animation, pickup detection
+│   ├── gate.js           # finish gate mesh + crossing test
 │   ├── effects.js        # blast particles, crash debris, screen shake
 │   ├── audio.js          # ported 2D synth (boom, chime, crash, fanfare)
 │   ├── hud.js            # DOM HUD + banners + stats table

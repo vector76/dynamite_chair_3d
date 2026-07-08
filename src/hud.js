@@ -9,12 +9,12 @@ const cooldownFill = document.querySelector('#cooldown .fill');
 
 const fmt = (v) => (Math.round(v * 10) / 10).toFixed(1);
 
-export function updateHud(s, heightAt) {
+export function updateHud(s, heightAt, coins) {
   const spd = speed(s);
   const spdCls = spd <= CFG.safeSpeed ? 'ok' : 'warn';
   const alt = s.pos.y - CFG.feetOffset - heightAt(s.pos.x, s.pos.z);
   hud.innerHTML =
-    '<div><span class="k">TIME</span> <span class="v">' + fmt(s.time) + '</span> <span class="k">s</span></div>' +
+    '<div><span class="k">TIME</span> <span class="v">' + fmt(s.time) + '</span> <span class="k">s</span> <span class="k">COINS</span> <span class="v">' + coins.collected + ' / ' + coins.total + '</span></div>' +
     '<div><span class="k">SPEED</span> <span class="' + spdCls + '">' + fmt(spd) + '</span> <span class="k">m/s (safe contact &le; ' + fmt(CFG.safeSpeed) + ')</span></div>' +
     '<div><span class="k">DESCENT</span> <span class="v">' + fmt(-s.vel.y) + '</span> <span class="k">ALT</span> <span class="v">' + fmt(alt) + '</span> <span class="k">m</span></div>';
 }
@@ -24,7 +24,7 @@ export function updateCooldown(frac) {
   cooldownFill.style.transform = 'scaleX(' + Math.max(0, Math.min(1, frac)) + ')';
 }
 
-export function showBanner(mode) {
+export function showBanner(mode, stats) {
   pause.classList.add('hidden');
   banner.classList.remove('hidden');
   if (mode === 'crashed') {
@@ -32,6 +32,11 @@ export function showBanner(mode) {
       '<h2 class="lose">💀 KABOOM 💀</h2>' +
       '<p>You hit the ground too fast.</p>' +
       '<p style="margin-top:12px;"><span class="key">Click to try again</span></p>';
+  } else if (mode === 'finished') {
+    banner.innerHTML =
+      '<h2 class="win">🏁 LEVEL ' + stats.level + ' COMPLETE 🏁</h2>' +
+      '<p class="stats">COINS <b>' + stats.coins + ' / ' + stats.total + '</b> &middot; TIME <b>' + fmt(stats.time) + ' s</b></p>' +
+      '<p style="margin-top:12px;"><span class="key">Click for level ' + (stats.level + 1) + '</span> &middot; R = retry this level</p>';
   }
   // 'ready' keeps the intro banner markup from index.html
 }
