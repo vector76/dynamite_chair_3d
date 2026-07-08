@@ -75,12 +75,33 @@ const state = {
   pos: new THREE.Vector3(),
   vel: new THREE.Vector3(),
   time: 0,      // simulation clock (accumulates clamped dt, not wall clock)
+  heading: 0,   // frame for aim + camera; follows horizontal travel direction
 };
+
+// world nose direction = aim.localDir rotated about Y by heading
+const noseDir = new THREE.Vector3();
+function updateNoseDir() {
+  const l = input.aim.localDir, c = Math.cos(state.heading), s = Math.sin(state.heading);
+  noseDir.set(l.x * c - l.z * s, l.y, l.x * s + l.z * c);
+}
+
+// swing heading toward the horizontal travel direction (shortest arc, damped);
+// below a minimum horizontal speed the heading just holds (e.g. hovering)
+function updateHeading(dt) {
+  const hSpeed = Math.hypot(state.vel.x, state.vel.z);
+  if (hSpeed < CFG.headingMinSpeed) return;
+  const target = Math.atan2(state.vel.x, -state.vel.z);
+  let d = (target - state.heading) % (2 * Math.PI);
+  if (d > Math.PI) d -= 2 * Math.PI;
+  if (d < -Math.PI) d += 2 * Math.PI;
+  state.heading += d * (1 - Math.exp(-CFG.headingDamping * dt));
+}
 
 function resetRun() {
   state.pos.set(CFG.startPos.x, CFG.startPos.y, CFG.startPos.z);
   state.vel.set(0, 0, 0);
   state.time = 0;
+  state.heading = 0;
   input.resetAim();
   chase.snap();
 }
@@ -89,7 +110,8 @@ function resetRun() {
 const input = createInput(renderer.domElement, {
   onFire() {
     if (state.mode !== 'playing') return;
-    blast(state, input.aim.dir);
+    updateNoseDir();
+    blast(state, noseDir);
     craft.setFlash();
   },
   onRestart() {
@@ -137,6 +159,7 @@ function frame(now) {
   if (state.mode === 'playing') {
     state.time += dt;
     step(state, dt);
+    updateHeading(dt);
     const contact = resolveGround(state, dt);
     if (contact === 'crash') {
       state.mode = 'crashed';
@@ -145,10 +168,11 @@ function frame(now) {
     updateHud(state);
   }
 
+  updateNoseDir();
   craft.object.position.copy(state.pos);
-  craft.setAim(input.aim.dir);
+  craft.setAim(noseDir);
   craft.update(dt);
-  chase.update(state.pos, input.aim.yaw, dt);
+  chase.update(state.pos, state.heading, dt);
 
   renderer.render(scene, camera);
   requestAnimationFrame(frame);

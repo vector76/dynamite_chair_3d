@@ -78,12 +78,17 @@ half-kick power-up charges, where finer control could justify a constraint.
 
 ## Controls
 
-- **Mouse (pointer lock)** — aims the craft. The nose tracks where you point.
+- **Mouse (pointer lock)** — aims the craft. The nose is a point on a sphere
+  around the craft: mouse forward/back moves it along the fore-aft arc
+  (through straight-up, all the way to backward horizontal — braking kicks),
+  mouse left/right tilts it laterally. Left/right always moves the nose tip
+  screen-left/right, even when aiming backward past vertical.
 - **Click / Space** — fire a charge.
-- **Camera** — chase camera behind the craft, softly following. Aim is
-  decoupled from velocity: point backwards to brake, up to hop, sideways to
-  steer, while momentum carries you forward.
-- **Keyboard fallback** — WASD/arrows pitch and yaw the craft.
+- **Camera** — chase camera behind the craft, following the smoothed
+  horizontal *direction of travel* (not the mouse). You steer by kicking;
+  the view swings to follow the actual flight path. Below a minimum
+  horizontal speed the heading holds steady (hovering, resting).
+- **Keyboard fallback** — WASD/arrows drive the same two aim angles.
 - **P / Esc** pause, **R** restart level, **V** toggle trajectory assist,
   **M** mute.
 

@@ -1,5 +1,7 @@
 // Pointer-lock mouse aim + fire/restart keys.
-// Owns the aim state (yaw/pitch -> nose direction); reports events via handlers.
+// Owns the aim state in the heading frame: foreAft (arc through vertical)
+// and lateral (left/right tilt) -> local nose direction. main.js rotates it
+// into world space by the current heading.
 import * as THREE from 'three';
 import { CFG } from './config.js';
 
@@ -7,34 +9,35 @@ const INVERT_KEY = 'dc3d.invertY';
 
 export function createInput(dom, handlers) {
   const aim = {
-    yaw: 0,                    // 0 faces -Z; positive turns right
-    pitch: CFG.startPitch,
-    dir: new THREE.Vector3(),  // unit nose direction, derived from yaw/pitch
+    foreAft: CFG.startForeAft,   // 0 fwd horizontal, 90° up, 180° back horizontal
+    lateral: 0,                  // + tilts right, - tilts left
+    localDir: new THREE.Vector3(),  // unit nose direction in the heading frame
   };
   // invert mouse: mouse back = pitch up, like pulling back on a stick
   let invertY = localStorage.getItem(INVERT_KEY) === '1';
 
   function updateDir() {
-    const cp = Math.cos(aim.pitch);
-    aim.dir.set(
-      Math.sin(aim.yaw) * cp,
-      Math.sin(aim.pitch),
-      -Math.cos(aim.yaw) * cp,
+    const cb = Math.cos(aim.lateral);
+    aim.localDir.set(
+      Math.sin(aim.lateral),
+      cb * Math.sin(aim.foreAft),
+      -cb * Math.cos(aim.foreAft),
     );
   }
   updateDir();
 
   function resetAim() {
-    aim.yaw = 0;
-    aim.pitch = CFG.startPitch;
+    aim.foreAft = CFG.startForeAft;
+    aim.lateral = 0;
     updateDir();
   }
 
   document.addEventListener('mousemove', (e) => {
     if (document.pointerLockElement !== dom) return;
-    aim.yaw += e.movementX * CFG.mouseSens;
-    aim.pitch += (invertY ? 1 : -1) * e.movementY * CFG.mouseSens;
-    aim.pitch = Math.min(CFG.pitchMax, Math.max(CFG.pitchMin, aim.pitch));
+    aim.lateral += e.movementX * CFG.mouseSens;
+    aim.lateral = Math.min(CFG.lateralMax, Math.max(-CFG.lateralMax, aim.lateral));
+    aim.foreAft += (invertY ? 1 : -1) * e.movementY * CFG.mouseSens;
+    aim.foreAft = Math.min(CFG.foreAftMax, Math.max(CFG.foreAftMin, aim.foreAft));
     updateDir();
   });
 

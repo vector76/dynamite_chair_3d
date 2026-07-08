@@ -1,4 +1,5 @@
-// Chase camera: sits behind the aim yaw, smoothed, never below the ground.
+// Chase camera: sits behind the heading (direction of travel), smoothed,
+// never below the ground.
 import * as THREE from 'three';
 import { CFG } from './config.js';
 
@@ -8,11 +9,11 @@ export function createChaseCamera(camera) {
   let initialized = false;
 
   return {
-    update(craftPos, yaw, dt) {
+    update(craftPos, heading, dt) {
       target.set(
-        craftPos.x - Math.sin(yaw) * CFG.camDist,
+        craftPos.x - Math.sin(heading) * CFG.camDist,
         craftPos.y + CFG.camHeight,
-        craftPos.z + Math.cos(yaw) * CFG.camDist,
+        craftPos.z + Math.cos(heading) * CFG.camDist,
       );
       if (target.y < CFG.camMinY) target.y = CFG.camMinY;
 
