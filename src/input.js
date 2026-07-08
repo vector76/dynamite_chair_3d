@@ -52,6 +52,13 @@ export function createInput(dom, handlers) {
     if (document.pointerLockElement === dom) handlers.onFire();
   });
 
+  // mouse wheel: pull the chase camera in/out for a wider view around bends
+  dom.addEventListener('wheel', (e) => {
+    if (document.pointerLockElement !== dom) return;
+    e.preventDefault();
+    handlers.onZoom(e.deltaY);
+  }, { passive: false });
+
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;             // debounce: one blast per press
     switch (e.code) {

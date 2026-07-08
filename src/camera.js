@@ -8,14 +8,21 @@ export function createChaseCamera(camera) {
   const lookAt = new THREE.Vector3();
   let initialized = false;
   let groundFn = null;   // heightAt(x, z); set once the terrain exists
+  let zoom = 1;          // mouse-wheel multiplier on distance & height; persists across runs
 
   return {
     setGround(fn) { groundFn = fn; },
+    // deltaY > 0 (scroll out) pulls the camera back; multiplicative so each
+    // notch feels the same at any distance. Clamped to the config range.
+    zoomBy(deltaY) {
+      zoom *= Math.exp(deltaY * CFG.zoomSens);
+      zoom = Math.min(CFG.zoomMax, Math.max(CFG.zoomMin, zoom));
+    },
     update(craftPos, heading, dt) {
       target.set(
-        craftPos.x - Math.sin(heading) * CFG.camDist,
-        craftPos.y + CFG.camHeight,
-        craftPos.z + Math.cos(heading) * CFG.camDist,
+        craftPos.x - Math.sin(heading) * CFG.camDist * zoom,
+        craftPos.y + CFG.camHeight * zoom,
+        craftPos.z + Math.cos(heading) * CFG.camDist * zoom,
       );
       const minY = groundFn
         ? groundFn(target.x, target.z) + CFG.camClearance

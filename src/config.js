@@ -42,6 +42,12 @@ export const CFG = {
   camMinY: 1.2,        // floor for the camera before terrain exists
   camClearance: 2.0,   // min camera height above the terrain surface
 
+  // Mouse-wheel zoom: scales camDist & camHeight together. 1 = default framing;
+  // scroll out to pull the camera back for a broader view coming around a bend.
+  zoomMin: 0.6,        // closest (scroll in)
+  zoomMax: 5.0,        // widest (scroll out)
+  zoomSens: 0.0016,    // multiplicative rate per wheel-delta unit
+
   // Aim line: long pointing-direction indicator (readable from the far camera)
   aimLineLength: 9,
 

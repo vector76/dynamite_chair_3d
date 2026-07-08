@@ -257,6 +257,7 @@ const input = createInput(renderer.domElement, {
   },
   onToggleViz() { updateVizHint(viz.toggle()); },
   onToggleMute() { updateMuteHint(toggleMute()); },
+  onZoom(deltaY) { chase.zoomBy(deltaY); },
 });
 
 function updateVizHint(on) {
