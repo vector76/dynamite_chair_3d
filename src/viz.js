@@ -39,6 +39,7 @@ export function createTrajectoryViz(scene) {
 
   // scratch state for the forward simulation (same integrator, no blasts)
   const sim = { pos: new THREE.Vector3(), vel: new THREE.Vector3() };
+  const prev = new THREE.Vector3();
   const normal = new THREE.Vector3();
   const _z = new THREE.Vector3(0, 0, 1);   // RingGeometry faces +Z
 
@@ -52,14 +53,29 @@ export function createTrajectoryViz(scene) {
     positions[0] = sim.pos.x; positions[1] = sim.pos.y; positions[2] = sim.pos.z;
     let n = 1, hit = false;
     for (; n < MAX; n++) {
+      prev.copy(sim.pos);
       step(sim, CFG.vizDt);
+      if (sim.pos.y - CFG.feetOffset <= heightAt(sim.pos.x, sim.pos.z)) {
+        // Refine the crossing inside this step by bisection, else the marker
+        // quantizes to whole steps and jitters as the step phase shifts under
+        // a moving craft. The integrator moves the position linearly within a
+        // step (pos += vel * dt with vel already updated), so interpolating
+        // along sim.vel retraces its path exactly.
+        let lo = 0, hi = 1;
+        for (let k = 0; k < 12; k++) {
+          const mid = (lo + hi) / 2;
+          const x = prev.x + sim.vel.x * mid * CFG.vizDt;
+          const y = prev.y + sim.vel.y * mid * CFG.vizDt;
+          const z = prev.z + sim.vel.z * mid * CFG.vizDt;
+          if (y - CFG.feetOffset <= heightAt(x, z)) hi = mid; else lo = mid;
+        }
+        sim.pos.copy(prev).addScaledVector(sim.vel, hi * CFG.vizDt);
+        hit = true;
+      }
       positions[n * 3] = sim.pos.x;
       positions[n * 3 + 1] = sim.pos.y;
       positions[n * 3 + 2] = sim.pos.z;
-      if (sim.pos.y - CFG.feetOffset <= heightAt(sim.pos.x, sim.pos.z)) {
-        n++; hit = true;
-        break;
-      }
+      if (hit) { n++; break; }
     }
 
     distances[0] = 0;
