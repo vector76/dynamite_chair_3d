@@ -13,10 +13,13 @@ export const CFG = {
   startPos: { x: 0, y: 30, z: 0 },
   startPitch: 60 * Math.PI / 180,  // initial aim: forward-up
 
-  // Aim
+  // Aim. Pitch may cross vertical (90°): past it the nose leans slightly
+  // backward relative to the yaw heading — needed to brake forward motion
+  // while still kicking mostly upward. The chase camera follows yaw only,
+  // so crossing vertical doesn't flip the view.
   mouseSens: 0.0025,   // rad per pixel of mouse movement
   pitchMin: -80 * Math.PI / 180,
-  pitchMax:  88 * Math.PI / 180,
+  pitchMax: 135 * Math.PI / 180,
 
   // Chase camera
   camDist: 12,
