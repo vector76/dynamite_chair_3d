@@ -318,7 +318,7 @@ document.getElementById('pause').addEventListener('pointerdown', () => input.req
 // tick() lets a script drive frames even where requestAnimationFrame is
 // throttled, e.g. a hidden tab).
 window.dc3d = {
-  state, input, loadLevel, goToLevel, scene,
+  state, input, loadLevel, goToLevel, scene, renderer,
   start: startRun,
   fire: () => { if (state.mode === 'playing') fireBlast(); },
   tick: (dt) => tick(Math.min(dt, CFG.dtMax)),

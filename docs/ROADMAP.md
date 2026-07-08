@@ -55,9 +55,17 @@ answered first.
 - Proper craft model from primitives (port the 2D lander look to 3D).
 
 ## M5 — Release pass
-- README with play link, controls, and screenshots/GIF.
-- Tuning pass across levels 1–10 for difficulty curve.
-- Performance check on integrated graphics; browser matrix sanity pass.
+- README with play link, controls, and screenshots/GIF. *(done — docs/img/screenshot.jpg
+  captured from the live renderer)*
+- Tuning pass across levels 1–10 for difficulty curve. *(done at the generator level:
+  makePath now picks, per level, the candidate seed whose meander best matches a rising
+  per-level target — realized twist was previously dominated by seed luck and was
+  non-monotonic, peaking at level 6. Playfeel tuning of gravity/impulse/cooldown remains
+  a human call.)*
+- Performance check on integrated graphics; browser matrix sanity pass. *(measured in
+  Chromium: ≤1 ms/frame after warm-up on levels 1–10, terrain mesh bounded at ~88k verts
+  by the 420² cap; integrated-GPU and cross-browser passes still need a human on real
+  hardware)*
 
 ## Later / maybe (see GAME_DESIGN.md "Future ideas")
 - Power-ups: half-kick charges, enlarged coin radius, others.

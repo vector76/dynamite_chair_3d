@@ -12,6 +12,10 @@ export function levelParams(level, seedOverride) {
     // max curvature step per segment, rad; capped because past ~0.6 a bounded
     // meander self-intersects for essentially every seed (nothing to resample to)
     turniness: Math.min(0.6, 0.20 + (level - 1) * 0.04),
+    // target meander (path length / straight-line distance). Realized twist is
+    // dominated by seed luck, not turniness, so makePath picks the candidate
+    // seed closest to this — the knob that actually sets the difficulty curve.
+    meanderTarget: Math.min(2.2, 1.10 + (level - 1) * 0.11),
     floorStart: -10,                          // floor height at the canyon mouth
     floorDrop: 80 + (level - 1) * 10,         // total descent over the length
   };
@@ -73,21 +77,33 @@ function walk(params, seed, dirCap) {
   return pts;
 }
 
+// Meander: how much longer the path is than the straight line between its ends.
+// The realized twistiness of any single walk is dominated by seed luck, so this
+// — not turniness — is what level difficulty is measured in.
+function meanderOf(pts) {
+  const a = pts[0], b = pts[pts.length - 1];
+  return ((pts.length - 1) * STEP) / Math.hypot(b.x - a.x, b.z - a.z);
+}
+
 export function makePath(params) {
-  // The turnier high levels can fold back and cross themselves. Local steering
-  // can't always escape a committed approach in one step, so instead regenerate
-  // with a perturbed seed until the walk doesn't self-intersect. Attempt 0 uses
-  // the level's own seed, so any level that already doesn't fold is unchanged.
+  // The turnier high levels can fold back and cross themselves, and per-seed
+  // twistiness varies wildly. So: generate a pool of candidate walks from
+  // deterministically perturbed seeds, drop the ones that fold, and keep the
+  // candidate whose meander is closest to the level's target — the difficulty
+  // curve then actually rises level over level instead of riding seed luck.
   const hitDist = 2 * params.halfWidth;
-  let pts = walk(params, params.seed);
-  for (let attempt = 1; attempt < 256 && pathFolds(pts, hitDist); attempt++) {
-    pts = walk(params, (params.seed + Math.imul(attempt, 0x9e3779b1)) >>> 0);
+  let pts = null, bestErr = Infinity;
+  for (let attempt = 0; attempt < 64; attempt++) {
+    const cand = walk(params, (params.seed + Math.imul(attempt, 0x9e3779b1)) >>> 0);
+    if (pathFolds(cand, hitDist)) continue;
+    const err = Math.abs(meanderOf(cand) - params.meanderTarget);
+    if (err < bestErr) { bestErr = err; pts = cand; }
   }
-  // Pathologically long/turny levels have no free-meander seed that avoids
+  // Pathologically long/turny levels may have no free-meander seed that avoids
   // folding. Fall back to a heading-capped walk: cos(dir) >= 0.7 means the path
   // always advances in -Z, so two segments far apart along it are far apart in Z
   // too and can never overlap — a guaranteed non-self-intersecting canyon.
-  if (pathFolds(pts, hitDist)) pts = walk(params, params.seed, 0.8);
+  if (!pts) pts = walk(params, params.seed, 0.8);
   const n = pts.length - 1;
   const length = n * STEP;
 
